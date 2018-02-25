@@ -2,6 +2,7 @@ package com.rusel.RCTBluetoothSerial;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
@@ -303,9 +304,9 @@ class RCTBluetoothSerialService {
             while (true) {
                 try {
                     bytes = mmInStream.read(buffer); // Read from the InputStream
-                    String data = new String(buffer, 0, bytes, "ISO-8859-1");
+                    byte[] data = Arrays.copyOfRange(buffer, 0, bytes);
 
-                    mModule.onData(data); // Send the new data String to the UI Activity
+                    mModule.onData(data); // Send the new raw data to the UI Activity
                 } catch (Exception e) {
                     Log.e(TAG, "disconnected", e);
                     mModule.onError(e);

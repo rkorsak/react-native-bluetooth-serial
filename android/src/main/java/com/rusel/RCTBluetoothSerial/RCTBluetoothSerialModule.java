@@ -2,6 +2,8 @@ package com.rusel.RCTBluetoothSerial;
 
 import java.lang.reflect.Method;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
 
 import android.app.Activity;
@@ -51,7 +53,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     private RCTBluetoothSerialService mBluetoothService;
     private ReactApplicationContext mReactContext;
 
-    private StringBuffer mBuffer = new StringBuffer();
+    private List<Byte> mBuffer = new ArrayList<Byte>();
 
     // Promises
     private Promise mEnabledPromise;
@@ -375,15 +377,26 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      */
     public void readFromDevice(Promise promise) {
         if (D) Log.d(TAG, "Read");
-        int length = mBuffer.length();
-        String data = mBuffer.substring(0, length);
-        mBuffer.delete(0, length);
-        promise.resolve(data);
+        byte[] convertedBuffer = new byte[mBuffer.size()];
+        for (int i = 0; i < mBuffer.size(); i++) {
+            Byte b = mBuffer.get(i);
+            convertedBuffer[i] = b;
+        }
+        byte[] data = Base64.encode(convertedBuffer, Base64.DEFAULT);
+        mBuffer.clear();
+        try {
+            String encodedData = new String(data, 0, data.length, "ISO-8859-1");
+            promise.resolve(encodedData);
+        } catch (Exception ex) {
+            onError(ex);
+            promise.reject(ex);
+        }
     }
 
     @ReactMethod
     public void readUntilDelimiter(String delimiter, Promise promise) {
-        promise.resolve(readUntil(delimiter));
+        // promise.resolve(readUntil(delimiter));
+        promise.resolve("This doesn't work");
     }
 
 
@@ -395,7 +408,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Clear data in buffer
      */
     public void clear(Promise promise) {
-        mBuffer.setLength(0);
+        mBuffer.clear();
         promise.resolve(true);
     }
 
@@ -404,7 +417,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Get length of data available to read
      */
     public void available(Promise promise) {
-        promise.resolve(mBuffer.length());
+        promise.resolve(mBuffer.size());
     }
 
 
@@ -475,24 +488,28 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Handle read
      * @param data Message
      */
-    void onData (String data) {
-        mBuffer.append(data);
-        String completeData = readUntil(this.delimiter);
-        if (completeData != null && completeData.length() > 0) {
-            WritableMap params = Arguments.createMap();
-            params.putString("data", completeData);
-            sendEvent(DEVICE_READ, params);
+    void onData (byte[] data) {
+        for (int i = 0; i < data.length; i++) {
+            mBuffer.add(data[i]);
         }
+        // mBuffer.addAll(data);
+        // String completeData = readUntil(this.delimiter);
+        // if (completeData != null && completeData.length() > 0) {
+        //     WritableMap params = Arguments.createMap();
+        //     params.putString("data", completeData);
+        //     sendEvent(DEVICE_READ, params);
+        // }
     }
 
     private String readUntil(String delimiter) {
-        String data = "";
-        int index = mBuffer.indexOf(delimiter, 0);
-        if (index > -1) {
-            data = mBuffer.substring(0, index + delimiter.length());
-            mBuffer.delete(0, index + delimiter.length());
-        }
-        return data;
+        return "";
+        // String data = "";
+        // int index = mBuffer.indexOf(delimiter, 0);
+        // if (index > -1) {
+        //     data = mBuffer.substring(0, index + delimiter.length());
+        //     mBuffer.delete(0, index + delimiter.length());
+        // }
+        // return data;
     }
 
     /*********************/
