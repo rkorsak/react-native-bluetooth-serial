@@ -377,13 +377,14 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      */
     public void readFromDevice(Promise promise) {
         if (D) Log.d(TAG, "Read");
+        int length = mBuffer.size();
         byte[] convertedBuffer = new byte[mBuffer.size()];
         for (int i = 0; i < mBuffer.size(); i++) {
             Byte b = mBuffer.get(i);
             convertedBuffer[i] = b;
         }
         byte[] data = Base64.encode(convertedBuffer, Base64.DEFAULT);
-        mBuffer.clear();
+        mBuffer.subList(0, length).clear();
         try {
             String encodedData = new String(data, 0, data.length, "ISO-8859-1");
             promise.resolve(encodedData);
