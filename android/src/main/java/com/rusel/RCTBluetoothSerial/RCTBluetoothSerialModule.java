@@ -53,6 +53,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     private RCTBluetoothSerialService mBluetoothService;
     private ReactApplicationContext mReactContext;
 
+    private Object mBufferLock = new Object();
     private List<Byte> mBuffer = new ArrayList<Byte>();
 
     // Promises
@@ -377,15 +378,18 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      */
     public void readFromDevice(Promise promise) {
         if (D) Log.d(TAG, "Read");
-        int length = mBuffer.size();
-        if (length > 0) Log.d(TAG, "Size " + length);
-        byte[] convertedBuffer = new byte[length];
-        for (int i = 0; i < length; i++) {
-            Byte b = mBuffer.get(i);
-            convertedBuffer[i] = b;
+        byte[] data;
+        synchronized(mBufferLock) {
+            int length = mBuffer.size();
+            if (length > 0) Log.d(TAG, "Size " + length);
+            byte[] convertedBuffer = new byte[length];
+            for (int i = 0; i < length; i++) {
+                Byte b = mBuffer.get(i);
+                convertedBuffer[i] = b;
+            }
+            data = Base64.encode(convertedBuffer, Base64.DEFAULT);
+            mBuffer.subList(0, length).clear();
         }
-        byte[] data = Base64.encode(convertedBuffer, Base64.DEFAULT);
-        mBuffer.subList(0, length).clear();
         try {
             String encodedData = new String(data, 0, data.length, "ISO-8859-1");
             promise.resolve(encodedData);
@@ -410,7 +414,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Clear data in buffer
      */
     public void clear(Promise promise) {
-        mBuffer.clear();
+        synchronized (mBufferLock) {
+            mBuffer.clear();
+        }
         promise.resolve(true);
     }
 
@@ -491,8 +497,10 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * @param data Message
      */
     void onData (byte[] data) {
-        for (int i = 0; i < data.length; i++) {
-            mBuffer.add(data[i]);
+        synchronized(mBufferLock) {
+            for (int i = 0; i < data.length; i++) {
+                mBuffer.add(data[i]);
+            }
         }
         // mBuffer.addAll(data);
         // String completeData = readUntil(this.delimiter);
