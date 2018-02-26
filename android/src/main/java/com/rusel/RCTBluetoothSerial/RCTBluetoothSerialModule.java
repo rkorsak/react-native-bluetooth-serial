@@ -379,8 +379,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         if (D) Log.d(TAG, "Read");
         int length = mBuffer.size();
         if (length > 0) Log.d(TAG, "Size " + length);
-        byte[] convertedBuffer = new byte[mBuffer.size()];
-        for (int i = 0; i < mBuffer.size(); i++) {
+        byte[] convertedBuffer = new byte[length];
+        for (int i = 0; i < length; i++) {
             Byte b = mBuffer.get(i);
             convertedBuffer[i] = b;
         }
